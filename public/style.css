@@ -1,1 +1,32 @@
+body {
+  margin: 0;
+  font-family: system-ui;
+  background: #0b0f1a;
+  color: white;
+}
 
+.app {
+  max-width: 500px;
+  margin: auto;
+  padding: 10px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.highlight {
+  background: linear-gradient(135deg, #1f6feb, #9333ea);
+  padding: 15px;
+  border-radius: 12px;
+  margin: 10px 0;
+}
+
+.card {
+  background: #161b22;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 10px;
+}
