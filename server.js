@@ -102,7 +102,15 @@ app.get("/api/missing", async (req, res) => {
   }
 });
 
-
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
+
+
+// add static hosting (serve frontend from backend)
+  const path = require("path");
+
+app.use(express.static(path.join(__dirname, "public")));
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/index.html"));
 });
