@@ -1,0 +1,8 @@
+
+---
+
+## 📌 .gitignore
+
+```text
+node_modules
+.env
