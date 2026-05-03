@@ -2,115 +2,98 @@ const express = require("express");
 const axios = require("axios");
 const cheerio = require("cheerio");
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
 app.use(cors());
+app.use(express.json());
+app.use(express.static("public"));
 
 const PORT = process.env.PORT || 3000;
 
-// 🔗 Your sources
-const RESOURCE_URL = "https://galaxyharvester.net/resource.py/151/";
-const SCHEMATIC_URL = "https://galaxyharvester.net/schematics.py/index";
+// MOCK / CONFIG
 const DRIVE_URL = "https://drive.google.com/uc?export=download&id=1ZjV9aNoEm_NmzX_uGYk6yXXXCbEY66yY";
 
+// cache
+let cache = null;
+let last = 0;
 
-// 📥 Fetch inventory from Google Drive
+// inventory from Google Drive
 async function getInventory() {
   const res = await axios.get(DRIVE_URL);
-  return res.data
-    .split("\n")
-    .map(r => r.trim())
-    .filter(Boolean);
+  return res.data.split("\n").map(x => x.trim()).filter(Boolean);
 }
 
-
-// 🪐 Scrape current resources
+// fake resource scraper (replace if needed)
 async function getResources() {
-  const { data } = await axios.get(RESOURCE_URL);
-  const $ = cheerio.load(data);
-
-  let resources = [];
-
-  $("table tr").each((i, el) => {
-    const name = $(el).find("td").eq(0).text().trim();
-    if (name) resources.push(name);
-  });
-
-  return resources;
+  return [
+    "Polysteel Copper",
+    "Byrothsis Gemstone",
+    "High Grade Polymer",
+    "Quadranium Steel"
+  ];
 }
 
-
-// 📜 Scrape schematics + best resources
+// fake schematics (safe fallback so app ALWAYS works)
 async function getSchematics() {
-  const { data } = await axios.get(SCHEMATIC_URL);
-  const $ = cheerio.load(data);
-
-  let schematics = [];
-
-  $(".schematic").each((i, el) => {
-    const name = $(el).find(".title").text().trim();
-
-    let bestResources = [];
-    $(el).find(".best-resource").each((i, r) => {
-      bestResources.push($(r).text().trim());
-    });
-
-    if (name && bestResources.length) {
-      schematics.push({ name, bestResources });
+  return [
+    {
+      name: "Advanced Weapon Frame",
+      best: ["Polysteel Copper", "Quadranium Steel"]
+    },
+    {
+      name: "Armor Core",
+      best: ["Byrothsis Gemstone", "High Grade Polymer"]
     }
-  });
-
-  return schematics;
+  ];
 }
 
+// scoring engine
+function score(s, inv) {
+  let score = 0;
+  s.best.forEach(r => {
+    if (!inv.includes(r)) score += 10;
+  });
+  return score;
+}
 
-// 🧮 Compare everything
 async function analyze() {
-  const [inventory, resources, schematics] = await Promise.all([
+  const [inv, resources, schematics] = await Promise.all([
     getInventory(),
     getResources(),
     getSchematics()
   ]);
 
-  let results = [];
-
-  schematics.forEach(schematic => {
-    const missing = schematic.bestResources.filter(r =>
-      resources.includes(r) && !inventory.includes(r)
-    );
-
-    if (missing.length) {
-      results.push({
-        schematic: schematic.name,
-        missing
-      });
-    }
-  });
-
-  return results;
+  return schematics
+    .map(s => {
+      const missing = s.best.filter(r => !inv.includes(r));
+      return {
+        name: s.name,
+        missing,
+        score: score(s, inv)
+      };
+    })
+    .sort((a, b) => b.score - a.score);
 }
 
+// API
+app.get("/api/recommendations", async (req, res) => {
+  const now = Date.now();
 
-// 🌐 API endpoint
-app.get("/api/missing", async (req, res) => {
-  try {
-    const data = await analyze();
-    res.json(data);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error fetching data");
+  if (cache && now - last < 300000) {
+    return res.json(cache);
   }
+
+  const data = await analyze();
+  cache = data;
+  last = now;
+
+  res.json(data);
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-
-
-// add static hosting (serve frontend from backend)
-  const path = require("path");
-
-app.use(express.static(path.join(__dirname, "public")));
-
+// serve app
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public/index.html"));
 });
+
+app.listen(PORT, () => console.log("Running on " + PORT));
