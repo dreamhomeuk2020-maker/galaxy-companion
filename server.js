@@ -97,3 +97,30 @@ app.get("/", (req, res) => {
 });
 
 app.listen(PORT, () => console.log("Running on " + PORT));
+
+
+let cache = null;
+let lastFetch = 0;
+
+async function analyzeCached() {
+  const now = Date.now();
+
+  if (cache && (now - lastFetch < 300000)) {
+    return cache; // 5 min cache
+  }
+
+  const fresh = await analyze();
+  cache = fresh;
+  lastFetch = now;
+
+  return fresh;
+}
+
+app.get("/api/missing", async (req, res) => {
+  try {
+    const data = await analyzeCached();
+    res.json(data);
+  } catch (err) {
+    res.status(500).send("Error");
+  }
+});
