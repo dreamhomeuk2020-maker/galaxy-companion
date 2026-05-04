@@ -1,29 +1,62 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Galaxy Companion</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
+  <title>Galaxy Harvester Game Helper</title>
+  <style>
+    body {
+      background: #0b0f1a;
+      color: #e6edf3;
+      font-family: Arial;
+      padding: 20px;
+    }
 
+    .card {
+      background: #161b22;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+    }
+
+    .missing {
+      color: #ff6b6b;
+    }
+  </style>
+</head>
 <body>
 
-<div class="app">
+<h1>🚀 Resource Hunter</h1>
+<div id="app"></div>
 
-  <div class="header">
-    <h1>🚀 Galaxy Companion</h1>
-    <button onclick="load()">🔄</button>
-  </div>
+<script>
+async function loadData() {
+  const res = await fetch("http://localhost:3000/api/missing");
+  const data = await res.json();
 
-  <div id="highlight"></div>
+  const app = document.getElementById("app");
+  app.innerHTML = "";
 
-  <canvas id="chart"></canvas>
+  data.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "card";
 
-  <div id="list"></div>
+    const title = document.createElement("h3");
+    title.textContent = item.schematic;
 
-</div>
+    div.appendChild(title);
 
-<script src="app.js"></script>
+    item.missing.forEach(r => {
+      const p = document.createElement("p");
+      p.className = "missing";
+      p.textContent = "❌ " + r;
+      div.appendChild(p);
+    });
+
+    app.appendChild(div);
+  });
+}
+
+loadData();
+</script>
+
 </body>
 </html>
